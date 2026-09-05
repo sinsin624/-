@@ -1,2 +1,513 @@
 # -
 簡單內部抽獎
+[lucky-draw.html](https://github.com/user-attachments/files/31856175/lucky-draw.html)
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抽獎程式</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15141d;
+    --panel:#1f1d2b;
+    --panel-2:#28243a;
+    --border:#3a3550;
+    --gold:#d7ac52;
+    --gold-dim:#a9843e;
+    --red:#c1483a;
+    --text:#f3ecdd;
+    --text-dim:#9a95ac;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(1200px 700px at 50% -10%, #262137 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:'Noto Sans TC', system-ui, sans-serif;
+    min-height:100vh;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:880px;margin:0 auto;}
+  header{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:24px;flex-wrap:wrap;gap:10px;
+  }
+  h1{
+    font-family:'Noto Serif TC', serif;
+    font-weight:900;
+    font-size:28px;
+    margin:0;
+    letter-spacing:.04em;
+    color:var(--text);
+  }
+  h1 span{color:var(--gold);}
+  .tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:5px;}
+  .tab-btn{
+    border:none;background:transparent;color:var(--text-dim);
+    padding:9px 16px;border-radius:8px;font-size:14px;font-weight:500;
+    cursor:pointer;font-family:inherit;transition:background .15s, color .15s;
+  }
+  .tab-btn.active{background:var(--gold);color:#221a0e;font-weight:700;}
+  .tab-btn:not(.active):hover{color:var(--text);}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:26px;
+    display:none;
+  }
+  .panel.active{display:block;}
+  .section-title{
+    font-family:'Noto Serif TC', serif;
+    font-size:17px;font-weight:700;margin:0 0 14px;color:var(--text);
+  }
+  label{font-size:13px;color:var(--text-dim);display:block;margin-bottom:6px;}
+  input[type=text], input[type=number], textarea, select{
+    width:100%;background:var(--panel-2);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;
+    font-family:inherit;outline:none;
+  }
+  input[type=text]:focus, input[type=number]:focus, textarea:focus, select:focus{
+    border-color:var(--gold);
+  }
+  textarea{resize:vertical;min-height:150px;line-height:1.6;}
+  .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+  .row > div{flex:1;min-width:140px;}
+  .btn{
+    border:none;border-radius:9px;padding:10px 18px;font-size:14px;font-weight:700;
+    cursor:pointer;font-family:inherit;transition:filter .15s, transform .1s;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-gold{background:var(--gold);color:#221a0e;}
+  .btn-gold:hover{filter:brightness(1.08);}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+  .btn-ghost:hover{color:var(--text);border-color:var(--gold-dim);}
+  .btn-danger{background:transparent;border:1px solid var(--red);color:var(--red);}
+  .btn-danger:hover{background:var(--red);color:var(--text);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13.5px;}
+  th, td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);}
+  th{color:var(--text-dim);font-weight:500;font-size:12.5px;}
+  td.num{color:var(--gold);font-weight:700;}
+  .empty{color:var(--text-dim);font-size:13.5px;padding:14px 2px;}
+  .hint{color:var(--text-dim);font-size:12.5px;margin-top:8px;line-height:1.6;}
+  .del-link{color:var(--text-dim);cursor:pointer;font-size:12.5px;}
+  .del-link:hover{color:var(--red);}
+
+  /* draw tab */
+  .draw-top{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px;}
+  .draw-top > div{flex:1;min-width:180px;}
+  .remaining-pill{
+    display:inline-block;background:var(--panel-2);border:1px solid var(--border);
+    border-radius:999px;padding:6px 14px;font-size:13px;color:var(--gold);font-weight:700;
+    white-space:nowrap;
+  }
+  .stage{
+    position:relative;
+    border:2px solid var(--gold-dim);
+    border-radius:18px;
+    background:linear-gradient(160deg, #241f36, #1a1726);
+    min-height:170px;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    padding:20px;margin-bottom:18px;
+    overflow:hidden;
+  }
+  .stage::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(400px 160px at 50% 0%, rgba(215,172,82,.18), transparent 70%);
+    pointer-events:none;
+  }
+  .stage-name{
+    font-family:'Noto Serif TC', serif;
+    font-weight:900;
+    font-size:40px;
+    color:var(--text);
+    letter-spacing:.03em;
+    transition:transform .08s;
+  }
+  .stage-name.spinning{color:var(--text-dim);}
+  .stage-name.landed{color:var(--gold);text-shadow:0 0 24px rgba(215,172,82,.45);}
+  .stage-code{margin-top:8px;font-size:15px;color:var(--text-dim);letter-spacing:.05em;}
+  .stage-empty{font-size:15px;color:var(--text-dim);}
+  .stage-prize-label{position:absolute;top:14px;left:18px;font-size:12px;color:var(--gold-dim);font-weight:700;}
+  .draw-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .checkline{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--text-dim);}
+  .checkline input{width:16px;height:16px;accent-color:var(--gold);}
+  .results-block{margin-top:22px;}
+  .results-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;flex-wrap:wrap;gap:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🏮 <span>抽獎</span>程式</h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="prizes">獎項內容</button>
+      <button class="tab-btn" data-tab="people">參加名單</button>
+      <button class="tab-btn" data-tab="draw">抽獎</button>
+    </div>
+  </header>
+
+  <!-- 獎項內容 -->
+  <div class="panel active" id="tab-prizes">
+    <div class="section-title">新增獎項</div>
+    <div class="row">
+      <div>
+        <label>獎項名稱</label>
+        <input type="text" id="prizeName" placeholder="例如：頭獎 iPhone">
+      </div>
+      <div style="flex:0 0 110px;">
+        <label>名額</label>
+        <input type="number" id="prizeQty" min="1" value="1">
+      </div>
+      <div style="flex:0 0 auto;">
+        <button class="btn btn-gold" id="addPrizeBtn">新增</button>
+      </div>
+    </div>
+
+    <table id="prizeTable">
+      <thead>
+        <tr><th>獎項名稱</th><th>總名額</th><th>已抽出</th><th>剩餘</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty" id="prizeEmpty">尚未新增任何獎項。</div>
+  </div>
+
+  <!-- 參加名單 -->
+  <div class="panel" id="tab-people">
+    <div class="section-title">參加名單</div>
+    <label>每行一位。可以是「姓名,識別碼」，也可以只貼識別碼（例如手機號碼），不用加姓名</label>
+    <textarea id="peopleInput" placeholder="王小明,0912345678&#10;陳小華,A123456789&#10;0930168620&#10;0902288678"></textarea>
+    <div class="row" style="margin-top:12px;">
+      <div style="flex:0 0 auto;"><button class="btn btn-gold" id="applyPeopleBtn">更新名單</button></div>
+      <div style="flex:0 0 auto;"><button class="btn btn-ghost" id="clearPeopleBtn">清空名單</button></div>
+      <div style="flex:1;text-align:right;"><span class="remaining-pill" id="peopleCount">共 0 位</span></div>
+    </div>
+    <div class="hint">更新名單只會改變「尚未抽中」的候選人；已經抽中的得獎紀錄不會被清掉。若要整個重來，請到「抽獎」頁使用「清除所有紀錄」。</div>
+  </div>
+
+  <!-- 抽獎 -->
+  <div class="panel" id="tab-draw">
+    <div class="draw-top">
+      <div>
+        <label>目前獎項</label>
+        <select id="prizeSelect"></select>
+      </div>
+      <div style="flex:0 0 auto;padding-bottom:2px;">
+        <span class="remaining-pill" id="drawRemainingPill">剩餘 0 名</span>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="stage-prize-label" id="stagePrizeLabel"></div>
+      <div class="stage-name" id="stageName">請選擇獎項</div>
+      <div class="stage-code" id="stageCode"></div>
+    </div>
+
+    <div class="draw-controls">
+      <button class="btn btn-gold" id="drawBtn">🎉 開始抽獎</button>
+      <button class="btn btn-ghost" id="undoBtn">撤銷上一筆</button>
+      <button class="btn btn-danger" id="resetAllBtn">清除所有紀錄</button>
+      <label class="checkline"><input type="checkbox" id="maskToggle" checked> 中獎結果隱匿後五碼</label>
+    </div>
+
+    <div class="results-block">
+      <div class="results-actions">
+        <div class="section-title" style="margin:0;">中獎結果</div>
+        <button class="btn btn-ghost" id="copyResultsBtn">複製結果</button>
+      </div>
+      <table id="resultsTable">
+        <thead><tr><th>獎項</th><th>得獎人</th><th>識別碼</th><th>時間</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="resultsEmpty">尚無中獎紀錄。</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  let prizes = [];       // {id, name, qty, drawn}
+  let people = [];       // {id, name, code}
+  let drawnIds = new Set();
+  let results = [];      // {prizeName, name, code, time}
+  let spinTimer = null;
+  let nextPrizeId = 1, nextPersonId = 1;
+
+  // ---------- tabs ----------
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+      if(btn.dataset.tab==='draw') refreshDrawTab();
+    });
+  });
+
+  // ---------- prizes ----------
+  const prizeTableBody = document.querySelector('#prizeTable tbody');
+  const prizeEmpty = document.getElementById('prizeEmpty');
+
+  function renderPrizes(){
+    prizeTableBody.innerHTML='';
+    prizeEmpty.style.display = prizes.length ? 'none' : 'block';
+    prizes.forEach(p=>{
+      const remaining = p.qty - p.drawn;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(p.name)}</td>
+        <td>${p.qty}</td>
+        <td>${p.drawn}</td>
+        <td class="num">${remaining}</td>
+        <td><span class="del-link" data-id="${p.id}">刪除</span></td>`;
+      tr.querySelector('.del-link').addEventListener('click', ()=>{
+        prizes = prizes.filter(x=>x.id!==p.id);
+        renderPrizes(); refreshDrawTab();
+      });
+      prizeTableBody.appendChild(tr);
+    });
+    refreshPrizeSelect();
+  }
+
+  document.getElementById('addPrizeBtn').addEventListener('click', ()=>{
+    const nameEl = document.getElementById('prizeName');
+    const qtyEl = document.getElementById('prizeQty');
+    const name = nameEl.value.trim();
+    const qty = Math.max(1, parseInt(qtyEl.value,10) || 1);
+    if(!name){ nameEl.focus(); return; }
+    prizes.push({id: nextPrizeId++, name, qty, drawn:0});
+    nameEl.value=''; qtyEl.value=1; nameEl.focus();
+    renderPrizes();
+  });
+
+  // ---------- people ----------
+  function parsePeople(text){
+    return text.split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{
+      // accept half-width "," and full-width "，" (common from Chinese IME)
+      const parts = line.split(/[,，]/).map(s=>s.trim()).filter(s=>s.length);
+      if(parts.length>=2){
+        return {name: parts[0], code: parts[1]};
+      }
+      // no comma at all -> treat the whole line as a bare identifier (e.g. a phone number list),
+      // not a name, so it still gets masked in results
+      return {name: '', code: parts[0] || ''};
+    });
+  }
+
+  // returns {main, sub} for displaying a person/winner: main = 得獎人欄, sub = 識別碼欄
+  function displayFields(person){
+    if(person.name){
+      return {main: person.name, sub: person.code ? maskCode(person.code) : ''};
+    }
+    return {main: person.code ? maskCode(person.code) : '（無資料）', sub: ''};
+  }
+
+  document.getElementById('applyPeopleBtn').addEventListener('click', ()=>{
+    const parsed = parsePeople(document.getElementById('peopleInput').value);
+    people = parsed.map(p=>({id: nextPersonId++, name:p.name, code:p.code}));
+    // keep only drawnIds that still make sense (they reference removed ids; safe to leave set as-is, pool filter handles it)
+    updatePeopleCount();
+    refreshDrawTab();
+  });
+
+  document.getElementById('clearPeopleBtn').addEventListener('click', ()=>{
+    if(!confirm('確定要清空整份參加名單嗎？（不影響已產生的中獎紀錄）')) return;
+    document.getElementById('peopleInput').value='';
+    people = [];
+    updatePeopleCount();
+    refreshDrawTab();
+  });
+
+  function updatePeopleCount(){
+    document.getElementById('peopleCount').textContent = `共 ${people.length} 位`;
+  }
+
+  // ---------- draw ----------
+  const prizeSelect = document.getElementById('prizeSelect');
+  const stageName = document.getElementById('stageName');
+  const stageCode = document.getElementById('stageCode');
+  const stagePrizeLabel = document.getElementById('stagePrizeLabel');
+  const drawBtn = document.getElementById('drawBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const drawRemainingPill = document.getElementById('drawRemainingPill');
+  const maskToggle = document.getElementById('maskToggle');
+
+  function refreshPrizeSelect(){
+    const prev = prizeSelect.value;
+    prizeSelect.innerHTML = '';
+    prizes.forEach(p=>{
+      const remaining = p.qty - p.drawn;
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.name}（剩 ${remaining}）`;
+      if(remaining<=0) opt.disabled = true;
+      prizeSelect.appendChild(opt);
+    });
+    if(prev && prizes.some(p=>String(p.id)===prev)) prizeSelect.value = prev;
+    refreshDrawTab();
+  }
+
+  prizeSelect.addEventListener('change', refreshDrawTab);
+
+  function currentPrize(){
+    const id = parseInt(prizeSelect.value,10);
+    return prizes.find(p=>p.id===id);
+  }
+
+  function pool(){
+    return people.filter(p=>!drawnIds.has(p.id));
+  }
+
+  function maskCode(code){
+    if(!code) return '';
+    if(!maskToggle.checked) return code;
+    if(code.length<=5) return '•'.repeat(code.length);
+    return code.slice(0, code.length-5) + '•'.repeat(5);
+  }
+
+  function refreshDrawTab(){
+    const prize = currentPrize();
+    if(!prizes.length){
+      stagePrizeLabel.textContent='';
+      stageName.textContent='請先到「獎項內容」新增獎項';
+      stageCode.textContent='';
+      drawRemainingPill.textContent='剩餘 0 名';
+      drawBtn.disabled = true;
+      return;
+    }
+    if(!prize){
+      stagePrizeLabel.textContent='';
+      stageName.textContent='請選擇獎項';
+      stageCode.textContent='';
+      drawRemainingPill.textContent='剩餘 0 名';
+      drawBtn.disabled = true;
+      return;
+    }
+    const remaining = prize.qty - prize.drawn;
+    stagePrizeLabel.textContent = prize.name;
+    drawRemainingPill.textContent = `剩餘 ${remaining} 名`;
+    const candidates = pool();
+    if(remaining<=0){
+      stageName.textContent = '本獎項已抽完';
+      stageCode.textContent = '';
+      drawBtn.disabled = true;
+    } else if(candidates.length===0){
+      stageName.textContent = '名單中無可抽取的人';
+      stageCode.textContent = '';
+      drawBtn.disabled = true;
+    } else {
+      if(!spinTimer){
+        stageName.textContent = '準備抽獎';
+        stageCode.textContent = '';
+      }
+      drawBtn.disabled = false;
+    }
+    renderResults();
+  }
+
+  drawBtn.addEventListener('click', ()=>{
+    const prize = currentPrize();
+    if(!prize) return;
+    const candidates = pool();
+    if(candidates.length===0 || prize.drawn>=prize.qty) return;
+
+    drawBtn.disabled = true;
+    stageName.classList.remove('landed');
+    stageName.classList.add('spinning');
+
+    const winner = candidates[Math.floor(Math.random()*candidates.length)];
+    let ticks = 0;
+    const totalTicks = 22;
+    spinTimer = setInterval(()=>{
+      const r = candidates[Math.floor(Math.random()*candidates.length)];
+      const rf = displayFields(r);
+      stageName.textContent = rf.main;
+      stageCode.textContent = rf.sub;
+      ticks++;
+      if(ticks>=totalTicks){
+        clearInterval(spinTimer);
+        spinTimer = null;
+        stageName.classList.remove('spinning');
+        stageName.classList.add('landed');
+        const wf = displayFields(winner);
+        stageName.textContent = wf.main;
+        stageCode.textContent = wf.sub;
+
+        drawnIds.add(winner.id);
+        prize.drawn += 1;
+        results.push({prizeName: prize.name, name: winner.name, code: winner.code, time: new Date()});
+
+        renderPrizes();
+        refreshDrawTab();
+      }
+    }, 65);
+  });
+
+  undoBtn.addEventListener('click', ()=>{
+    if(!results.length) return;
+    const last = results.pop();
+    const prize = prizes.find(p=>p.name===last.prizeName);
+    // find matching person id to release from drawnIds (best-effort: match by name+code)
+    const person = people.find(p=>p.name===last.name && p.code===last.code && drawnIds.has(p.id));
+    if(person) drawnIds.delete(person.id);
+    if(prize) prize.drawn = Math.max(0, prize.drawn-1);
+    stageName.classList.remove('landed');
+    renderPrizes();
+    refreshDrawTab();
+  });
+
+  document.getElementById('resetAllBtn').addEventListener('click', ()=>{
+    if(!confirm('確定要清除所有中獎紀錄與抽獎狀態嗎？獎項與名單設定會保留。')) return;
+    drawnIds.clear();
+    results = [];
+    prizes.forEach(p=>p.drawn=0);
+    stageName.classList.remove('landed');
+    renderPrizes();
+    refreshDrawTab();
+  });
+
+  maskToggle.addEventListener('change', renderResults);
+
+  function renderResults(){
+    const tbody = document.querySelector('#resultsTable tbody');
+    const empty = document.getElementById('resultsEmpty');
+    tbody.innerHTML='';
+    empty.style.display = results.length ? 'none' : 'block';
+    results.slice().reverse().forEach(r=>{
+      const tr = document.createElement('tr');
+      const timeStr = r.time.toLocaleTimeString('zh-TW', {hour12:false});
+      const f = displayFields(r);
+      tr.innerHTML = `<td>${escapeHtml(r.prizeName)}</td><td>${escapeHtml(f.main)}</td><td>${escapeHtml(f.sub)}</td><td>${timeStr}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('copyResultsBtn').addEventListener('click', ()=>{
+    if(!results.length){ alert('尚無中獎紀錄可複製。'); return; }
+    const text = results.map(r=>{ const f=displayFields(r); return `${r.prizeName}\t${f.main}\t${f.sub}`; }).join('\n');
+    navigator.clipboard.writeText(text).then(()=>{
+      alert('已複製中獎結果到剪貼簿。');
+    }).catch(()=>{
+      alert('複製失敗，請手動選取表格內容。');
+    });
+  });
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // init
+  renderPrizes();
+  updatePeopleCount();
+  refreshDrawTab();
+})();
+</script>
+</body>
+</html>
