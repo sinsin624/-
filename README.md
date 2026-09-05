@@ -1,5 +1,4 @@
-# -
-簡單內部抽獎
+
 [lucky-draw.html](https://github.com/user-attachments/files/31856175/lucky-draw.html)
 <!DOCTYPE html>
 <html lang="zh-Hant">
